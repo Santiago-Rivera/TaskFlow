@@ -6,7 +6,7 @@ module.exports = defineConfig({
   ],
   // Configuración para GitHub Pages
   publicPath: process.env.NODE_ENV === 'production'
-    ? '/VueJS-Gestor-Tareas/' // Reemplaza con el nombre de tu repositorio
+    ? 'https://Santiago-Rivera.github.io/VueJS-Gestor-Tareas/' // Reemplaza con el nombre de tu repositorio
     : '/',
   
   // Configuración adicional para el build
