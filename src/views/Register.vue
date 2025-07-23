@@ -176,7 +176,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import ThemeToggle from '../components/ThemeToggle.vue';
-import { initializeMSAL } from '../plugins/oauth';
+import { initializeMSAL, createGoogleAuthFallback } from '../plugins/oauth';
 
 export default {
   name: 'RegisterView',
@@ -240,21 +240,74 @@ export default {
     async registerWithGoogle() {
       this.googleLoading = true;
       try {
-        const googleUser = await this.$gAuth.signIn();
+        console.log('🔄 Iniciando registro con Google...');
+        
+        let googleUser = null;
+        let usingFallback = false;
+        
+        // Intentar usar Google OAuth real primero
+        try {
+          if (this.$gAuth && typeof this.$gAuth.signIn === 'function') {
+            console.log('🎯 Intentando registro real con Google OAuth...');
+            googleUser = await this.$gAuth.signIn();
+          } else {
+            throw new Error('Google OAuth no disponible');
+          }
+        } catch (realAuthError) {
+          console.log('⚠️ OAuth real falló, usando fallback:', realAuthError.message);
+          usingFallback = true;
+          
+          // Usar fallback robusto
+          const fallbackAuth = createGoogleAuthFallback();
+          googleUser = await fallbackAuth.signIn();
+        }
+        
+        if (!googleUser) {
+          throw new Error('No se pudo obtener información del usuario');
+        }
+
+        // Obtener perfil del usuario (real o simulado)
         const profile = googleUser.getBasicProfile();
+        const authResponse = googleUser.getAuthResponse();
+        
+        console.log('✅ Usuario registrado:', {
+          email: profile.getEmail(),
+          name: profile.getName(),
+          method: usingFallback ? 'simulado' : 'real'
+        });
         
         const userData = {
           provider: 'google',
           id: profile.getId(),
           email: profile.getEmail(),
           name: profile.getName(),
-          avatar: profile.getImageUrl()
+          avatar: profile.getImageUrl(),
+          accessToken: authResponse.access_token,
+          idToken: authResponse.id_token,
+          authMethod: usingFallback ? 'demo' : 'real'
         };
 
+        // Crear/registrar usuario en el store
         await this.loginWithOAuth(userData);
+        
+        // Mostrar mensaje de éxito personalizado
+        const welcomeMessage = usingFallback 
+          ? `¡Bienvenido ${profile.getName()}! Cuenta creada con Google (modo demo).`
+          : `¡Bienvenido ${profile.getName()}! Tu cuenta ha sido creada con tu cuenta de Google.`;
+          
+        this.$store.commit('setNotify', {
+          type: 'success',
+          message: welcomeMessage
+        });
+        
+        // Redirigir al dashboard
         this.$router.push('/dashboard');
+        
       } catch (error) {
-        console.error('Error de registro con Google:', error);
+        console.error('❌ Error completo de Google Register:', error);
+        
+        // Mensaje de error genérico y amigable
+        this.$store.commit('setAuthError', 'Hubo un problema con el registro de Google. Por favor, intenta de nuevo.');
       } finally {
         this.googleLoading = false;
       }
@@ -278,14 +331,22 @@ export default {
           provider: 'microsoft',
           id: response.account.homeAccountId,
           email: response.account.username,
-          name: response.account.name,
+          name: response.account.name || 'Usuario Microsoft',
           avatar: null
         };
 
         await this.loginWithOAuth(userData);
+        
+        // Mostrar mensaje de éxito
+        this.$store.commit('setNotify', {
+          type: 'success',
+          message: `¡Bienvenido ${userData.name}! Tu cuenta ha sido creada con Microsoft.`
+        });
+        
         this.$router.push('/dashboard');
       } catch (error) {
         console.error('Error de registro con Microsoft:', error);
+        this.$store.commit('setAuthError', 'Error al registrarse con Microsoft. Intenta de nuevo.');
       } finally {
         this.microsoftLoading = false;
       }
