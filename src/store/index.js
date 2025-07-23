@@ -421,6 +421,87 @@ export default new Vuex.Store({
       }
     },
     
+    async loginWithOAuth({ commit }, { provider, id, email, name, avatar }) {
+      commit('setAuthLoading', true);
+      commit('setAuthError', null);
+      
+      try {
+        // Simulación de procesamiento OAuth
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Recargar usuarios del localStorage
+        mockUsers = loadUsersFromStorage();
+        
+        // Buscar usuario existente por email o por ID del proveedor
+        let existingUser = mockUsers.find(u => 
+          u.email === email || 
+          (u.oauthProviders && u.oauthProviders[provider] === id)
+        );
+        
+        if (!existingUser) {
+          // Crear nuevo usuario desde OAuth
+          existingUser = {
+            id: Date.now(),
+            email,
+            name,
+            avatar,
+            oauthProviders: {
+              [provider]: id
+            },
+            createdWithOAuth: true
+          };
+          
+          mockUsers.push(existingUser);
+          saveUsersToStorage(mockUsers);
+          
+          // Inicializar datos del nuevo usuario
+          localStorage.setItem(`tasks_${existingUser.id}`, JSON.stringify([]));
+          localStorage.setItem(`completedTasks_${existingUser.id}`, JSON.stringify([]));
+          localStorage.setItem(`tasksDeleted_${existingUser.id}`, '0');
+        } else {
+          // Usuario existente - actualizar información OAuth
+          if (!existingUser.oauthProviders) {
+            existingUser.oauthProviders = {};
+          }
+          existingUser.oauthProviders[provider] = id;
+          
+          // Actualizar avatar y nombre si no los tiene
+          if (avatar && !existingUser.avatar) {
+            existingUser.avatar = avatar;
+          }
+          if (name && (!existingUser.name || existingUser.name.trim() === '')) {
+            existingUser.name = name;
+          }
+          
+          saveUsersToStorage(mockUsers);
+        }
+        
+        // Generar token
+        const token = btoa(JSON.stringify({ 
+          id: existingUser.id, 
+          email: existingUser.email, 
+          exp: Date.now() + (24 * 60 * 60 * 1000)
+        }));
+        
+        commit('setToken', token);
+        commit('setUser', { 
+          id: existingUser.id, 
+          email: existingUser.email, 
+          name: existingUser.name,
+          avatar: existingUser.avatar,
+          oauthProviders: existingUser.oauthProviders
+        });
+        
+        commit('setAuthLoading', false);
+        
+        return { success: true };
+      } catch (error) {
+        commit('setAuthError', error.message || 'Error de autenticación OAuth');
+        commit('setAuthLoading', false);
+        throw error;
+      }
+    },
+    
     async checkAuth({ commit, state }) {
       if (state.token) {
         try {

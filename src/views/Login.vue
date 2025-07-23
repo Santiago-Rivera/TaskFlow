@@ -71,6 +71,44 @@
                     Iniciar Sesión
                   </v-btn>
 
+                  <!-- Divider -->
+                  <div class="text-center my-4">
+                    <v-divider></v-divider>
+                    <span class="px-3 text-caption" 
+                          style="background: white; position: relative; top: -10px;">
+                      O continúa con
+                    </span>
+                  </div>
+
+                  <!-- Botones OAuth -->
+                  <div class="oauth-buttons mb-4">
+                    <v-btn
+                      @click="loginWithGoogle"
+                      :loading="googleLoading"
+                      color="white"
+                      large
+                      block
+                      outlined
+                      class="oauth-btn mb-3"
+                    >
+                      <v-icon left color="#4285F4">mdi-google</v-icon>
+                      Continuar con Google
+                    </v-btn>
+
+                    <v-btn
+                      @click="loginWithMicrosoft"
+                      :loading="microsoftLoading"
+                      color="white"
+                      large
+                      block
+                      outlined
+                      class="oauth-btn"
+                    >
+                      <v-icon left color="#0078D4">mdi-microsoft</v-icon>
+                      Continuar con Outlook
+                    </v-btn>
+                  </div>
+
                   <!-- Link a registro -->
                   <div class="text-center">
                     <p class="mb-0">
@@ -98,6 +136,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import ThemeToggle from '../components/ThemeToggle.vue';
+import { initializeMSAL } from '../plugins/oauth';
 
 export default {
   name: 'LoginView',
@@ -110,6 +149,10 @@ export default {
       email: '',
       password: '',
       showPassword: false,
+      googleLoading: false,
+      microsoftLoading: false,
+      msalInstance: null,
+      loginRequest: null,
       emailRules: [
         v => !!v || 'El correo es requerido',
         v => /.+@.+\..+/.test(v) || 'El correo debe ser válido',
@@ -127,7 +170,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['login']),
+    ...mapActions(['login', 'loginWithOAuth']),
     async handleLogin() {
       if (this.$refs.form.validate()) {
         try {
@@ -139,6 +182,59 @@ export default {
         } catch (error) {
           // Error ya manejado en el store
         }
+      }
+    },
+    async loginWithGoogle() {
+      this.googleLoading = true;
+      try {
+        const googleUser = await this.$gAuth.signIn();
+        const profile = googleUser.getBasicProfile();
+        
+        const userData = {
+          provider: 'google',
+          id: profile.getId(),
+          email: profile.getEmail(),
+          name: profile.getName(),
+          avatar: profile.getImageUrl()
+        };
+
+        await this.loginWithOAuth(userData);
+        this.$router.push('/dashboard');
+      } catch (error) {
+        console.error('Error de login con Google:', error);
+      } finally {
+        this.googleLoading = false;
+      }
+    },
+    async loginWithMicrosoft() {
+      this.microsoftLoading = true;
+      try {
+        if (!this.msalInstance) {
+          const { msalInstance, loginRequest } = await initializeMSAL();
+          this.msalInstance = msalInstance;
+          this.loginRequest = loginRequest;
+        }
+        
+        if (!this.msalInstance) {
+          throw new Error('Microsoft authentication no disponible');
+        }
+        
+        const response = await this.msalInstance.loginPopup(this.loginRequest);
+        
+        const userData = {
+          provider: 'microsoft',
+          id: response.account.homeAccountId,
+          email: response.account.username,
+          name: response.account.name,
+          avatar: null
+        };
+
+        await this.loginWithOAuth(userData);
+        this.$router.push('/dashboard');
+      } catch (error) {
+        console.error('Error de login con Microsoft:', error);
+      } finally {
+        this.microsoftLoading = false;
       }
     }
   },
@@ -232,6 +328,31 @@ export default {
 
 .auth-link:hover {
   text-decoration: underline;
+}
+
+.oauth-buttons {
+  margin: 16px 0;
+}
+
+.oauth-btn {
+  border-radius: 12px !important;
+  font-weight: 500;
+  text-transform: none;
+  font-size: 15px;
+  height: 48px;
+  border: 2px solid #e0e0e0 !important;
+  color: #424242 !important;
+}
+
+.oauth-btn:hover {
+  border-color: #bdbdbd !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.theme.v-application.theme--dark .oauth-btn {
+  background: rgba(45, 45, 45, 0.8) !important;
+  border-color: #616161 !important;
+  color: #e0e0e0 !important;
 }
 
 .demo-text {
