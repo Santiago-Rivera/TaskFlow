@@ -35,7 +35,7 @@ const routes = [
 ];
 
 const router = new VueRouter({
-  mode: 'history',
+  mode: 'hash', // Cambiar a hash mode para GitHub Pages
   base: process.env.BASE_URL,
   routes
 });
