@@ -253,7 +253,7 @@ import TasksByCategory from "./TasksByCategory";
 import GroupManagement from "./GroupManagement";
 
 export default {
-  name: "Tasks",
+  name: "TaskManager",
   components: { 
     ShowTasks, 
     NewTask, 

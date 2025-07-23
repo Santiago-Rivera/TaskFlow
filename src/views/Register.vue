@@ -140,7 +140,7 @@ import { mapState, mapActions } from 'vuex';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
 export default {
-  name: 'Register',
+  name: 'RegisterView',
   components: {
     ThemeToggle
   },

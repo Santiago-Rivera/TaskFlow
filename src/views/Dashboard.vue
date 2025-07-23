@@ -102,7 +102,7 @@
     import { mapState, mapGetters, mapActions } from 'vuex';
 
     export default {
-        name: 'Dashboard',
+        name: 'DashboardView',
         components: { Tasks, ThemeToggle, UserSettings },
         data() {
             return {
