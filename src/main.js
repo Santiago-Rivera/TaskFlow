@@ -3,7 +3,7 @@ import App from './App.vue'
 import store from './store'
 import router from './router'
 import vuetify from './plugins/vuetify';
-import './plugins/oauth';
+import './plugins/google-oauth';
 
 // Verificador OAuth en desarrollo
 if (process.env.NODE_ENV === 'development') {

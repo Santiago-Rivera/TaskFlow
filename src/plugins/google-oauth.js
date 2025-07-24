@@ -1,8 +1,5 @@
 import Vue from 'vue'
 
-// Configuración de Google Identity Services (GIS) - NUEVA API para selector de cuentas
-// NOTA: Usa tu propio Client ID para producción. Este es un ejemplo para desarrollo.
-
 // Plugin personalizado para Google OAuth con selector de cuentas visual
 const GoogleOAuthPlugin = {
   install(Vue) {
@@ -100,4 +97,48 @@ const GoogleOAuthPlugin = {
 
 Vue.use(GoogleOAuthPlugin);
 
+// Función de fallback para componentes que usen la función global
+const createGoogleAuthFallback = () => {
+  return {
+    signIn: async () => {
+      console.log('🔄 Usando Google OAuth fallback...');
+      
+      const availableUsers = [
+        {
+          id: 'demo_user_001',
+          email: 'demo.user@gmail.com',
+          name: 'Demo User',
+          picture: 'https://ui-avatars.com/api/?name=Demo+User&background=4285f4&color=fff'
+        },
+        {
+          id: 'test_user_002',
+          email: 'test.usuario@gmail.com',
+          name: 'Test Usuario',
+          picture: 'https://ui-avatars.com/api/?name=Test+Usuario&background=34a853&color=fff'
+        }
+      ];
+      
+      const randomUser = availableUsers[Math.floor(Math.random() * availableUsers.length)];
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return {
+        getBasicProfile: () => ({
+          getId: () => randomUser.id,
+          getEmail: () => randomUser.email,
+          getName: () => randomUser.name,
+          getImageUrl: () => randomUser.picture
+        }),
+        getAuthResponse: () => ({
+          access_token: 'demo_access_token_' + Date.now(),
+          id_token: 'demo_id_token_' + Date.now(),
+          expires_in: 3600,
+          scope: 'profile email openid'
+        })
+      };
+    }
+  };
+};
+
 export default GoogleOAuthPlugin;
+export { createGoogleAuthFallback };

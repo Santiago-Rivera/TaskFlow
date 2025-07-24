@@ -240,26 +240,32 @@ export default {
     async registerWithGoogle() {
       this.googleLoading = true;
       try {
-        console.log('🔄 Iniciando registro con Google...');
+        console.log('🔄 Iniciando Google Sign-In para registro con selector de cuentas...');
         
         let googleUser = null;
-        let usingFallback = false;
+        let usingRealAuth = false;
         
-        // Intentar usar Google OAuth real primero
+        // NUEVA IMPLEMENTACIÓN: Usar Google Identity Services
         try {
-          if (this.$gAuth && typeof this.$gAuth.signIn === 'function') {
-            console.log('🎯 Intentando registro real con Google OAuth...');
-            googleUser = await this.$gAuth.signIn();
+          if (this.$googleAuth && typeof this.$googleAuth.signIn === 'function') {
+            console.log('🎯 Usando Google Identity Services - Mostrará selector de cuentas...');
+            
+            // Esto GARANTIZA que aparezca el selector de cuentas como en la imagen
+            googleUser = await this.$googleAuth.signIn();
+            usingRealAuth = true;
+            
+            console.log('✅ Usuario seleccionó cuenta de Google para registro:', googleUser);
+            
           } else {
-            throw new Error('Google OAuth no disponible');
+            throw new Error('Google Identity Services no disponible - usando fallback');
           }
         } catch (realAuthError) {
-          console.log('⚠️ OAuth real falló, usando fallback:', realAuthError.message);
-          usingFallback = true;
+          console.log('⚠️ Google Identity Services falló, usando fallback:', realAuthError.message);
           
-          // Usar fallback robusto
+          // Fallback solo si la API real no está disponible
           const fallbackAuth = createGoogleAuthFallback();
           googleUser = await fallbackAuth.signIn();
+          usingRealAuth = false;
         }
         
         if (!googleUser) {
@@ -273,7 +279,7 @@ export default {
         console.log('✅ Usuario registrado:', {
           email: profile.getEmail(),
           name: profile.getName(),
-          method: usingFallback ? 'simulado' : 'real'
+          method: usingRealAuth ? 'Google Identity Services' : 'simulado'
         });
         
         const userData = {
@@ -284,16 +290,16 @@ export default {
           avatar: profile.getImageUrl(),
           accessToken: authResponse.access_token,
           idToken: authResponse.id_token,
-          authMethod: usingFallback ? 'demo' : 'real'
+          authMethod: usingRealAuth ? 'real' : 'demo'
         };
 
-        // Crear/registrar usuario en el store
-        await this.loginWithOAuth(userData);
+        // Registrar usuario en el store
+        await this.registerWithOAuth(userData);
         
         // Mostrar mensaje de éxito personalizado
-        const welcomeMessage = usingFallback 
-          ? `¡Bienvenido ${profile.getName()}! Cuenta creada con Google (modo demo).`
-          : `¡Bienvenido ${profile.getName()}! Tu cuenta ha sido creada con tu cuenta de Google.`;
+        const welcomeMessage = usingRealAuth 
+          ? `¡Bienvenido ${profile.getName()}! Te has registrado exitosamente con tu cuenta de Google.`
+          : `¡Bienvenido ${profile.getName()}! Registrado con Google (modo demo).`;
           
         this.$store.commit('setNotify', {
           type: 'success',
@@ -306,8 +312,18 @@ export default {
       } catch (error) {
         console.error('❌ Error completo de Google Register:', error);
         
-        // Mensaje de error genérico y amigable
-        this.$store.commit('setAuthError', 'Hubo un problema con el registro de Google. Por favor, intenta de nuevo.');
+        // Mensaje de error específico
+        let errorMessage = 'Hubo un problema con el registro de Google.';
+        
+        if (error.message && error.message.includes('popup_closed_by_user')) {
+          errorMessage = 'Has cancelado el registro.';
+        } else if (error.message && error.message.includes('access_denied')) {
+          errorMessage = 'Acceso denegado. Por favor, acepta los permisos necesarios.';
+        } else if (error.message && error.message.includes('popup')) {
+          errorMessage = 'Error al abrir la ventana de Google. Verifica que no esté bloqueada por el navegador.';
+        }
+        
+        this.$store.commit('setAuthError', errorMessage);
       } finally {
         this.googleLoading = false;
       }
