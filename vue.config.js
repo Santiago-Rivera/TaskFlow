@@ -32,20 +32,7 @@ module.exports = {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src')
-      },
-      fallback: {
-        "crypto": false,
-        "stream": false,
-        "assert": false,
-        "http": false,
-        "https": false,
-        "os": false,
-        "url": false
       }
-    },
-    // Configuración para módulos externos
-    externals: {
-      // Tratar MSAL como externo si hay problemas
     },
     module: {
       rules: [
