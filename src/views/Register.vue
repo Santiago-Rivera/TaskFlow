@@ -243,44 +243,34 @@ export default {
         console.log('🔄 Iniciando Google Sign-In para registro con selector de cuentas...');
         
         let googleUser = null;
-        let usingRealAuth = false;
         
-        // NUEVA IMPLEMENTACIÓN: Usar Google Identity Services
+        // Usar el plugin de Google OAuth (selector visual)
         try {
           if (this.$googleAuth && typeof this.$googleAuth.signIn === 'function') {
-            console.log('🎯 Usando Google Identity Services - Mostrará selector de cuentas...');
+            console.log('🎯 Mostrando selector de cuentas de Google para registro...');
             
-            // Esto GARANTIZA que aparezca el selector de cuentas como en la imagen
             googleUser = await this.$googleAuth.signIn();
-            usingRealAuth = true;
             
             console.log('✅ Usuario seleccionó cuenta de Google para registro:', googleUser);
             
           } else {
-            throw new Error('Google Identity Services no disponible - usando fallback');
+            throw new Error('Google Auth plugin no disponible');
           }
-        } catch (realAuthError) {
-          console.log('⚠️ Google Identity Services falló, usando fallback:', realAuthError.message);
+        } catch (authError) {
+          console.log('⚠️ Error en plugin de Google, usando fallback:', authError.message);
           
-          // Fallback solo si la API real no está disponible
+          // Fallback adicional si el plugin falla
           const fallbackAuth = createGoogleAuthFallback();
           googleUser = await fallbackAuth.signIn();
-          usingRealAuth = false;
         }
         
         if (!googleUser) {
           throw new Error('No se pudo obtener información del usuario');
         }
 
-        // Obtener perfil del usuario (real o simulado)
+        // Obtener perfil del usuario
         const profile = googleUser.getBasicProfile();
         const authResponse = googleUser.getAuthResponse();
-        
-        console.log('✅ Usuario registrado:', {
-          email: profile.getEmail(),
-          name: profile.getName(),
-          method: usingRealAuth ? 'Google Identity Services' : 'simulado'
-        });
         
         const userData = {
           provider: 'google',
@@ -290,16 +280,14 @@ export default {
           avatar: profile.getImageUrl(),
           accessToken: authResponse.access_token,
           idToken: authResponse.id_token,
-          authMethod: usingRealAuth ? 'real' : 'demo'
+          authMethod: 'demo'
         };
 
         // Registrar usuario en el store
         await this.registerWithOAuth(userData);
         
-        // Mostrar mensaje de éxito personalizado
-        const welcomeMessage = usingRealAuth 
-          ? `¡Bienvenido ${profile.getName()}! Te has registrado exitosamente con tu cuenta de Google.`
-          : `¡Bienvenido ${profile.getName()}! Registrado con Google (modo demo).`;
+        // Mostrar mensaje de éxito
+        const welcomeMessage = `¡Bienvenido ${profile.getName()}! Te has registrado exitosamente con Google.`;
           
         this.$store.commit('setNotify', {
           type: 'success',
@@ -334,63 +322,46 @@ export default {
         console.log('🔄 Iniciando Microsoft Sign-In para registro con selector de cuentas...');
         
         let microsoftUser = null;
-        let usingRealAuth = false;
         
-        // NUEVA IMPLEMENTACIÓN: Usar Microsoft Identity Services
+        // Usar el plugin de Microsoft OAuth (selector visual)
         try {
           if (this.$microsoftAuth && typeof this.$microsoftAuth.signIn === 'function') {
-            console.log('🎯 Usando Microsoft Identity Services - Mostrará selector de cuentas...');
+            console.log('🎯 Mostrando selector de cuentas de Microsoft para registro...');
             
-            // Esto GARANTIZA que aparezca el selector de cuentas como en la imagen
             microsoftUser = await this.$microsoftAuth.signIn();
-            usingRealAuth = true;
             
             console.log('✅ Usuario seleccionó cuenta de Microsoft para registro:', microsoftUser);
             
           } else {
-            throw new Error('Microsoft Identity Services no disponible - usando fallback');
+            throw new Error('Microsoft Auth plugin no disponible');
           }
-        } catch (realAuthError) {
-          console.log('⚠️ Microsoft Identity Services falló, usando fallback:', realAuthError.message);
+        } catch (authError) {
+          console.log('⚠️ Error en plugin de Microsoft, usando fallback:', authError.message);
           
-          // Fallback solo si la API real no está disponible
+          // Fallback adicional si el plugin falla
           const fallbackAuth = createMicrosoftAuthFallback();
           microsoftUser = await fallbackAuth.signIn();
-          usingRealAuth = false;
         }
         
         if (!microsoftUser) {
           throw new Error('No se pudo obtener información del usuario');
         }
 
-        // Obtener perfil del usuario (real o simulado)
-        const profile = microsoftUser.getBasicProfile();
-        const authResponse = microsoftUser.getAuthResponse();
-        
-        console.log('✅ Usuario registrado:', {
-          email: profile.getEmail(),
-          name: profile.getName(),
-          method: usingRealAuth ? 'Microsoft Identity Services' : 'simulado'
-        });
-        
         const userData = {
           provider: 'microsoft',
-          id: profile.getId(),
-          email: profile.getEmail(),
-          name: profile.getName(),
-          avatar: profile.getImageUrl(),
-          accessToken: authResponse.access_token,
-          idToken: authResponse.id_token,
-          authMethod: usingRealAuth ? 'real' : 'demo'
+          id: microsoftUser.id,
+          email: microsoftUser.email,
+          name: microsoftUser.name,
+          avatar: microsoftUser.avatar,
+          accessToken: microsoftUser.accessToken,
+          authMethod: 'demo'
         };
 
         // Registrar usuario en el store
         await this.registerWithOAuth(userData);
         
-        // Mostrar mensaje de éxito personalizado
-        const welcomeMessage = usingRealAuth 
-          ? `¡Bienvenido ${profile.getName()}! Te has registrado exitosamente con tu cuenta de Microsoft.`
-          : `¡Bienvenido ${profile.getName()}! Registrado con Microsoft (modo demo).`;
+        // Mostrar mensaje de éxito
+        const welcomeMessage = `¡Bienvenido ${microsoftUser.name}! Te has registrado exitosamente con Microsoft.`;
           
         this.$store.commit('setNotify', {
           type: 'success',

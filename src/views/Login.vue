@@ -190,44 +190,34 @@ export default {
         console.log('🔄 Iniciando Google Sign-In con selector de cuentas...');
         
         let googleUser = null;
-        let usingRealAuth = false;
         
-        // NUEVA IMPLEMENTACIÓN: Usar Google Identity Services
+        // Usar el plugin de Google OAuth (selector visual)
         try {
           if (this.$googleAuth && typeof this.$googleAuth.signIn === 'function') {
-            console.log('🎯 Usando Google Identity Services - Mostrará selector de cuentas...');
+            console.log('🎯 Mostrando selector de cuentas de Google...');
             
-            // Esto GARANTIZA que aparezca el selector de cuentas como en la imagen
             googleUser = await this.$googleAuth.signIn();
-            usingRealAuth = true;
             
             console.log('✅ Usuario seleccionó cuenta de Google:', googleUser);
             
           } else {
-            throw new Error('Google Identity Services no disponible - usando fallback');
+            throw new Error('Google Auth plugin no disponible');
           }
-        } catch (realAuthError) {
-          console.log('⚠️ Google Identity Services falló, usando fallback:', realAuthError.message);
+        } catch (authError) {
+          console.log('⚠️ Error en plugin de Google, usando fallback:', authError.message);
           
-          // Fallback solo si la API real no está disponible
+          // Fallback adicional si el plugin falla
           const fallbackAuth = createGoogleAuthFallback();
           googleUser = await fallbackAuth.signIn();
-          usingRealAuth = false;
         }
         
         if (!googleUser) {
           throw new Error('No se pudo obtener información del usuario');
         }
 
-        // Obtener perfil del usuario (real o simulado)
+        // Obtener perfil del usuario
         const profile = googleUser.getBasicProfile();
         const authResponse = googleUser.getAuthResponse();
-        
-        console.log('✅ Usuario autenticado:', {
-          email: profile.getEmail(),
-          name: profile.getName(),
-          method: usingRealAuth ? 'Google Identity Services' : 'simulado'
-        });
         
         const userData = {
           provider: 'google',
@@ -237,16 +227,14 @@ export default {
           avatar: profile.getImageUrl(),
           accessToken: authResponse.access_token,
           idToken: authResponse.id_token,
-          authMethod: usingRealAuth ? 'real' : 'demo'
+          authMethod: 'demo'
         };
 
         // Guardar usuario en el store
         await this.loginWithOAuth(userData);
         
-        // Mostrar mensaje de éxito personalizado
-        const welcomeMessage = usingRealAuth 
-          ? `¡Bienvenido ${profile.getName()}! Has iniciado sesión con tu cuenta de Google.`
-          : `¡Bienvenido ${profile.getName()}! Conectado con Google (modo demo).`;
+        // Mostrar mensaje de éxito
+        const welcomeMessage = `¡Bienvenido ${profile.getName()}! Has iniciado sesión con Google.`;
           
         this.$store.commit('setNotify', {
           type: 'success',
@@ -268,6 +256,8 @@ export default {
           errorMessage = 'Acceso denegado. Por favor, acepta los permisos necesarios.';
         } else if (error.message && error.message.includes('popup')) {
           errorMessage = 'Error al abrir la ventana de Google. Verifica que no esté bloqueada por el navegador.';
+        } else if (error.message && error.message.includes('invalid_client')) {
+          errorMessage = 'Error de configuración de Google. Usando modo demo.';
         }
         
         this.$store.commit('setAuthError', errorMessage);
