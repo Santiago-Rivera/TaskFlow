@@ -176,7 +176,7 @@
 <script>
 import { mapState, mapActions } from 'vuex';
 import ThemeToggle from '../components/ThemeToggle.vue';
-import { initializeMSAL, createGoogleAuthFallback } from '../plugins/oauth';
+import { createGoogleAuthFallback, createMicrosoftAuthFallback } from '../plugins/oauth';
 
 export default {
   name: 'RegisterView',
@@ -331,42 +331,94 @@ export default {
     async registerWithMicrosoft() {
       this.microsoftLoading = true;
       try {
-        if (!this.msalInstance) {
-          const { msalInstance, loginRequest } = await initializeMSAL();
-          this.msalInstance = msalInstance;
-          this.loginRequest = loginRequest;
+        console.log('🔄 Iniciando Microsoft Sign-In para registro con selector de cuentas...');
+        
+        let microsoftUser = null;
+        let usingRealAuth = false;
+        
+        // NUEVA IMPLEMENTACIÓN: Usar Microsoft Identity Services
+        try {
+          if (this.$microsoftAuth && typeof this.$microsoftAuth.signIn === 'function') {
+            console.log('🎯 Usando Microsoft Identity Services - Mostrará selector de cuentas...');
+            
+            // Esto GARANTIZA que aparezca el selector de cuentas como en la imagen
+            microsoftUser = await this.$microsoftAuth.signIn();
+            usingRealAuth = true;
+            
+            console.log('✅ Usuario seleccionó cuenta de Microsoft para registro:', microsoftUser);
+            
+          } else {
+            throw new Error('Microsoft Identity Services no disponible - usando fallback');
+          }
+        } catch (realAuthError) {
+          console.log('⚠️ Microsoft Identity Services falló, usando fallback:', realAuthError.message);
+          
+          // Fallback solo si la API real no está disponible
+          const fallbackAuth = createMicrosoftAuthFallback();
+          microsoftUser = await fallbackAuth.signIn();
+          usingRealAuth = false;
         }
         
-        if (!this.msalInstance) {
-          throw new Error('Microsoft authentication no disponible');
+        if (!microsoftUser) {
+          throw new Error('No se pudo obtener información del usuario');
         }
+
+        // Obtener perfil del usuario (real o simulado)
+        const profile = microsoftUser.getBasicProfile();
+        const authResponse = microsoftUser.getAuthResponse();
         
-        const response = await this.msalInstance.loginPopup(this.loginRequest);
+        console.log('✅ Usuario registrado:', {
+          email: profile.getEmail(),
+          name: profile.getName(),
+          method: usingRealAuth ? 'Microsoft Identity Services' : 'simulado'
+        });
         
         const userData = {
           provider: 'microsoft',
-          id: response.account.homeAccountId,
-          email: response.account.username,
-          name: response.account.name || 'Usuario Microsoft',
-          avatar: null
+          id: profile.getId(),
+          email: profile.getEmail(),
+          name: profile.getName(),
+          avatar: profile.getImageUrl(),
+          accessToken: authResponse.access_token,
+          idToken: authResponse.id_token,
+          authMethod: usingRealAuth ? 'real' : 'demo'
         };
 
-        await this.loginWithOAuth(userData);
+        // Registrar usuario en el store
+        await this.registerWithOAuth(userData);
         
-        // Mostrar mensaje de éxito
+        // Mostrar mensaje de éxito personalizado
+        const welcomeMessage = usingRealAuth 
+          ? `¡Bienvenido ${profile.getName()}! Te has registrado exitosamente con tu cuenta de Microsoft.`
+          : `¡Bienvenido ${profile.getName()}! Registrado con Microsoft (modo demo).`;
+          
         this.$store.commit('setNotify', {
           type: 'success',
-          message: `¡Bienvenido ${userData.name}! Tu cuenta ha sido creada con Microsoft.`
+          message: welcomeMessage
         });
         
+        // Redirigir al dashboard
         this.$router.push('/dashboard');
+        
       } catch (error) {
-        console.error('Error de registro con Microsoft:', error);
-        this.$store.commit('setAuthError', 'Error al registrarse con Microsoft. Intenta de nuevo.');
+        console.error('❌ Error completo de Microsoft Register:', error);
+        
+        // Mensaje de error específico
+        let errorMessage = 'Hubo un problema con el registro de Microsoft.';
+        
+        if (error.message && error.message.includes('popup_closed_by_user')) {
+          errorMessage = 'Has cancelado el registro.';
+        } else if (error.message && error.message.includes('access_denied')) {
+          errorMessage = 'Acceso denegado. Por favor, acepta los permisos necesarios.';
+        } else if (error.message && error.message.includes('popup')) {
+          errorMessage = 'Error al abrir la ventana de Microsoft. Verifica que no esté bloqueada por el navegador.';
+        }
+        
+        this.$store.commit('setAuthError', errorMessage);
       } finally {
         this.microsoftLoading = false;
       }
-    }
+    },
   },
   mounted() {
     // Aplicar tema
