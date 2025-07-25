@@ -1,6 +1,70 @@
-# TaskFlow - Gestor de Tareas Avanzado
+# 🎯 TaskFlow - Gestor de Tareas Avanzado
 
-_Gestor de tareas profesional desarrollado en VueJS con autenticación, temas y gestión de usuarios._
+![TaskFlow](https://img.shields.io/badge/TaskFlow-1.0.0-blue.svg)
+![Vue.js](https://img.shields.io/badge/Vue.js-2.6.11-green.svg)
+![Vuetify](https://img.shields.io/badge/Vuetify-2.6.10-purple.svg)
+
+_Gestor de tareas profesional desarrollado en VueJS con autenticación OAuth, diseño moderno y alto rendimiento._
+
+## 🚀 Despliegue Rápido
+
+### Script de Despliegue Automático (Windows)
+
+```cmd
+build-deploy.bat
+```
+
+### Comandos Manuales
+
+```bash
+# Instalar dependencias
+npm install
+
+# Build para producción
+npm run build:prod
+
+# Previsualizar localmente
+npm run build:preview
+
+# Desplegar en GitHub Pages
+npm run deploy
+```
+
+## 🌐 Configuración de Despliegue
+
+### ⚙️ vue.config.js - Configuración Completa
+
+La configuración está optimizada para:
+
+- ✅ **GitHub Pages**: Rutas automáticas `/VueJS-Gestor-Tareas/`
+- ✅ **Optimización de Bundle**: Code splitting inteligente
+- ✅ **Cache Strategy**: Hash de archivos para cache eficiente
+- ✅ **SEO Ready**: Meta tags y título configurables
+- ✅ **Performance**: Preload/prefetch automático
+
+### 📁 Estructura de Rutas para Despliegue
+
+- **Página Principal**: `/login` - Pantalla de autenticación (como en la imagen)
+- **Dashboard**: `/dashboard` - Panel principal (requiere auth)
+- **Registro**: `/register` - Creación de cuentas
+
+### 🔧 Variables de Entorno
+
+**Desarrollo (`.env`)**:
+
+```env
+VUE_APP_NAME=TaskFlow
+VUE_APP_BASE_URL=/
+VUE_APP_DEV_MODE=true
+```
+
+**Producción (`.env.production`)**:
+
+```env
+VUE_APP_NAME=TaskFlow
+VUE_APP_BASE_URL=/VueJS-Gestor-Tareas/
+VUE_APP_DEV_MODE=false
+```
 
 ## ✨ Características Principales
 

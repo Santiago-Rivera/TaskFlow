@@ -6,9 +6,13 @@
   "scripts": {
     "serve": "set NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service serve",
     "build": "set NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service build",
+    "build:prod": "set NODE_OPTIONS=--openssl-legacy-provider && set NODE_ENV=production && vue-cli-service build",
+    "build:preview": "npm run build:prod && npx serve -s dist -l 3000",
     "lint": "vue-cli-service lint",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "predeploy": "npm run build:prod",
+    "deploy": "gh-pages -d dist",
+    "deploy:local": "npm run build:prod && echo Build completado - Archivos listos en dist/",
+    "start": "npm run serve"
   },
   "dependencies": {
     "axios": "^1.10.0",

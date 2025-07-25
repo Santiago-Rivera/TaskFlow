@@ -12,7 +12,7 @@ Vue.use(VueRouter);
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: '/login'  // Cambiar para mostrar login como página principal
   },
   {
     path: '/login',
