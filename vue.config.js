@@ -1,5 +1,5 @@
 const path = require('path')
-
+// Configuración para GitHub Pages
 module.exports = {
   transpileDependencies: [
     'vuetify'
@@ -7,7 +7,7 @@ module.exports = {
   
   // Configuración para GitHub Pages
   publicPath: process.env.NODE_ENV === 'production'
-    ? '/VueJS-Gestor-Tareas/' // Ruta relativa para GitHub Pages
+    ? 'https://santiago-rivera.github.io/TaskFlow/dist/index.html' // Ruta relativa para GitHub Pages
     : '/',
   
   // Configuración adicional para el build
